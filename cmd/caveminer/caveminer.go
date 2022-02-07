@@ -44,7 +44,35 @@ func main() {
 
 // Dig searches PE section for a code cave that is at least n bytes in size
 func Dig(s *pe.Section, n int) {
+	data, err := s.Data()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	data = append(data, 0xff) // sentinel
 
+	// Start digging...
+	var index, begin, end, count int
+	for i, b := range data {
+		switch {
+		case b == 0:
+			count++
+		case count >= n:
+			// Cave found!
+			index++
+			begin = i - count
+			end = i
+			fmt.Printf("# Cave %d\n", index)
+			fmt.Printf("\tSize        : %d bytes\n", count)
+			fmt.Printf("\tOffset Start: %xh\n", uint32(begin)+s.Offset)
+			fmt.Printf("\tOffset End  : %xh\n", uint32(end)+s.Offset)
+			fallthrough
+		default:
+			count = 0 // reset counter and keep digging
+		}
+	}
+	if index == 0 {
+		fmt.Println("No caves found.")
+	}
 }
 
 // Usage prints helper message and exit
